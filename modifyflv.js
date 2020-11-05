@@ -1264,12 +1264,16 @@ EventEmitter.prototype.emit = function(type) {
     switch (arguments.length) {
       // fast cases
       case 1:
+        //console.log("EventEmitter1:")
         handler.call(this);
         break;
       case 2:
+        //console.log("EventEmitter2:")
         handler.call(this, arguments[1]);
         break;
       case 3:
+        var now_time = new Date().getTime();//起始时间
+        //console.log("EventEmitter3:"+now_time)
         handler.call(this, arguments[1], arguments[2]);
         break;
       // slower
@@ -3139,7 +3143,9 @@ var Transmuxer = function () {
         key: '_onMediaSegment',
         value: function _onMediaSegment(type, mediaSegment) {
             var _this2 = this;
-
+            var now_time = new Date().getTime();//起始时间
+           
+            //console.log("_onMediaSegment:"+now_time)
             Promise.resolve().then(function () {
                 _this2._emitter.emit(_transmuxingEvents2.default.MEDIA_SEGMENT, type, mediaSegment);
             });
@@ -4655,6 +4661,7 @@ var FLVDemuxer = function () {
             return new Int16Array(buf)[0] === 256; // platform-spec read, if equal then LE
         }();
     }
+    var startx, starty, drawwidth, drawheight, mediawith, mediaheight;//画线
 
     _createClass(FLVDemuxer, [{
         key: 'destroy',
@@ -4809,9 +4816,15 @@ var FLVDemuxer = function () {
 
             // dispatch parsed frames to consumer (typically, the remuxer)
             if (this._isInitialMetadataDispatched()) {
+                var start = new Date().getTime();//起始时间
+                //console.log("flvmuxer send data time:"+start)
                 if (this._dispatch && (this._audioTrack.length || this._videoTrack.length)) {
                     this._onDataAvailable(this._audioTrack, this._videoTrack);
+
                 }
+                //var end = new Date().getTime();//接受时间
+                //console.log((end - start)+"ms");//返回函数执行需要时间
+
             }
 
             return offset; // consumed bytes, just equals latest offset index
@@ -4861,10 +4874,12 @@ var FLVDemuxer = function () {
                 if (typeof onMetaData.width === 'number') {
                     // width
                     this._mediaInfo.width = onMetaData.width;
+                    mediawith = onMetaData.width;
                 }
                 if (typeof onMetaData.height === 'number') {
                     // height
                     this._mediaInfo.height = onMetaData.height;
+                    mediaheight = onMetaData.height;
                 }
                 if (typeof onMetaData.duration === 'number') {
                     // duration
@@ -5377,6 +5392,66 @@ var FLVDemuxer = function () {
                 this._onError(_demuxErrors2.default.FORMAT_ERROR, 'Flv: Invalid video packet type ' + packetType);
                 return;
             }
+            function drawline() {
+                var canvas = document.getElementById('canvas');
+                if (canvas == null)
+                {
+                    console.log("get canvas failed");
+                    return;
+                }
+                canvas.width = mediawith;
+                canvas.height = mediaheight;
+                // 拿到上下文
+                var context = canvas.getContext('2d');
+                // 设置线条的颜色
+                context.strokeStyle = 'red';
+                // 设置线条的宽度
+                context.lineWidth = 3;
+
+                // 绘制直线
+                context.beginPath();
+
+                context.moveTo(startx, starty);
+                // 终点
+                context.lineTo(startx + drawwidth, starty);
+
+                context.moveTo(startx, starty);
+                // 终点
+                context.lineTo(startx, starty + drawheight);
+
+                context.moveTo(startx + drawwidth, starty);
+                // 终点
+                context.lineTo(startx + drawwidth, starty + drawheight);
+
+                context.moveTo(startx, starty + drawheight);
+                // 终点
+                context.lineTo(startx + drawwidth, starty + drawheight);
+
+                context.closePath();
+                context.stroke();
+
+                startx = 0
+                starty = 0
+                drawwidth = 0
+                drawheight = 0
+            }
+
+            if (startx || starty || drawwidth || drawheight) {
+                drawline()
+            } else {
+                clearline()
+            }
+
+    
+            function clearline() {
+                var canvas = document.getElementById('canvas');
+                canvas.width = mediawith;
+                canvas.height = mediaheight;
+                // 拿到上下文
+                var context = canvas.getContext('2d');
+                context.clearRect(0, 0, mediawith, mediaheight)
+            }
+
         }
     }, {
         key: '_parseAVCDecoderConfigurationRecord',
@@ -5546,7 +5621,7 @@ var FLVDemuxer = function () {
             this._dispatch = false;
             this._onTrackMetadata('video', meta);
         }
-    }, {
+    },  {
         key: '_parseAVCVideoData',
         value: function _parseAVCVideoData(arrayBuffer, dataOffset, dataSize, tagTimestamp, tagPosition, frameType, cts) {
             var le = this._littleEndian;
@@ -5594,9 +5669,29 @@ var FLVDemuxer = function () {
                         for (let index = 0; index < content_len; index++) {
                             content_str += String.fromCharCode(v.getUint8(offset + lengthSize+2 + 1 + 16+index));
                         }
-                        //console.log(content_str)
-                        var content_json = JSON.parse(content_str)
-                        console.log(content_json)
+                        try {
+                            if (typeof JSON.parse(content_str) == "object") {
+                                console.log(content_str)
+                                var content_json = JSON.parse(content_str)
+                                console.log(content_json)
+                                
+                                startx = content_json.pos_x
+                                starty = content_json.pos_y
+                                drawwidth = content_json.pos_w
+                                drawheight = content_json.pos_h
+                                var now_time = new Date().getTime();//起始时间
+                                //console.log(content_json.time)
+                                //console.log(now_time)
+                                console.log("latency time:"+(now_time - content_json.time)+"ms")
+                            }
+                            else{
+                                console.log("this is not json data:"+content_str)
+                            }
+                        } catch(e) {
+                            //console.log("this is not json data:"+content_str)
+                        }
+                        
+
                     }
                 
                 }
@@ -10690,9 +10785,7 @@ var MP4Remuxer = function () {
         /* prototype: function onInitSegment(type: string, initSegment: ArrayBuffer): void
            InitSegment: {
                type: string,
-               data: ArrayBuffer,
-               codec: string,
-               container: string
+               data: Arrayfmp4string
            }
         */
 
@@ -10718,8 +10811,11 @@ var MP4Remuxer = function () {
             if (!this._dtsBaseInited) {
                 this._calculateDtsBase(audioTrack, videoTrack);
             }
+            var start = new Date().getTime();//起始时间
             this._remuxVideo(videoTrack);
             this._remuxAudio(audioTrack);
+            var end = new Date().getTime();
+            //console.log("use time:"+(start - end)+"ms")
         }
     }, {
         key: '_onTrackMetadataReceived',
@@ -10952,10 +11048,7 @@ var MP4Remuxer = function () {
                         var _nextDts = lastSample.dts - this._dtsBase - dtsCorrection;
                         sampleDuration = _nextDts - _dts;
                     } else if (mp4Samples.length >= 1) {
-                        // use second last sample duration
-                        sampleDuration = mp4Samples[mp4Samples.length - 1].duration;
-                    } else {
-                        // the only one sample, use reference sample duration
+                        // use second last sample duratio_remuxVideoence sample duration
                         sampleDuration = Math.floor(refSampleDuration);
                     }
                 }
@@ -11120,7 +11213,8 @@ var MP4Remuxer = function () {
             if (this._videoMeta == null) {
                 return;
             }
-
+            // var start = new Date().getTime();//起始时间
+            // console.log("remuxVideo data time:"+start)
             var track = videoTrack;
             var samples = track.samples;
             var dtsCorrection = undefined;
@@ -11198,7 +11292,7 @@ var MP4Remuxer = function () {
                 var isKeyframe = _sample2.isKeyframe;
                 var dts = originalDts - dtsCorrection;
                 var cts = _sample2.cts;
-                var pts = dts + cts;
+                var pts = dts + cts;//解释下 CTS的概念，CompositionTime,表示 PTS相对于DTS的偏移量
 
                 if (firstDts === -1) {
                     firstDts = dts;

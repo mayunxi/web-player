@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <style>
+        .father {
+            position: relative;
+        }
+
+        #videoElement {
+            position: absolute;
+            left: 0;
+            top: 0;
+            z-index: 1;
+            object-fit: fill;
+        }
+
+        #canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 704px;
+            height: 576px;
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+    <script src="./modifyflv.js"></script>
+    <script src="./jquery-1.12.4.min.js"></script>
+    <div class="father">
+        <video id="videoElement" muted></video>
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        if (flvjs.isSupported()) {
+            var videoElement = document.getElementById('videoElement');
+            var flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                url: 'http://192.168.20.41:8000/live/stream.flv'
+            });
+            flvPlayer.attachMediaElement(videoElement);
+            flvPlayer.load();
+            flvPlayer.play();
+        }
+    </script>
+</body>
+
+</html>
