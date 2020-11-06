@@ -1789,7 +1789,7 @@ exports.createDefaultConfig = createDefaultConfig;
 
 var defaultConfig = exports.defaultConfig = {
     enableWorker: false,
-    enableStashBuffer: true,
+    enableStashBuffer: false,
     stashInitialSize: undefined,
 
     isLive: false,
@@ -2812,7 +2812,10 @@ var MSEController = function () {
                     }
 
                     try {
+
                         this._sourceBuffers[type].appendBuffer(segment.data);
+                        // var now_time = new Date().getTime();
+                        // console.log("appendBuffer:"+now_time)
                         this._isBufferFull = false;
                         if (type === 'video' && segment.hasOwnProperty('info')) {
                             this._idrList.appendArray(segment.info.syncPoints);
@@ -5671,18 +5674,18 @@ var FLVDemuxer = function () {
                         }
                         try {
                             if (typeof JSON.parse(content_str) == "object") {
-                                console.log(content_str)
+                            
                                 var content_json = JSON.parse(content_str)
-                                console.log(content_json)
+                                //console.log(content_json)
                                 
                                 startx = content_json.pos_x
                                 starty = content_json.pos_y
                                 drawwidth = content_json.pos_w
                                 drawheight = content_json.pos_h
-                                var now_time = new Date().getTime();//起始时间
-                                //console.log(content_json.time)
-                                //console.log(now_time)
-                                console.log("latency time:"+(now_time - content_json.time)+"ms")
+                                // var now_time = new Date().getTime();
+                                // //console.log(content_json.time)
+                                // console.log("_parseAVCVideoData:" + now_time)
+                                //console.log("latency time:"+(now_time - content_json.time)+"ms")
                             }
                             else{
                                 console.log("this is not json data:"+content_str)
